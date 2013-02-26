@@ -1,0 +1,32 @@
+#! /bin/sh
+#
+# fetch-updates - fetch system and port updates.  Applying the updates
+#   should be done elsewhere.  The default is to assume this is being
+#   run from a cron job.  Use -n to fetch the updates right now.
+#
+# This code is based on code I got from the Web, but don't remember where.
+
+go=''
+
+[ -z "$testing" ] || {
+  set -x
+  go=:
+  }
+
+fetch=cron
+
+while [ $# -gt 0 ] ; do
+  case $1 in
+    -n) fetch=fetch 
+	;;
+
+     *) echo 1>&2 "? \""$1\"" is an unrecognized command-line argument." 
+	echo 1>&2 "? Command format is \"$(basename $0) [-n]\"." 
+	exit 1
+	;;
+  esac
+  shift 1
+done
+
+$go /usr/sbin/freebsd-update $fetch
+$go /usr/sbin/portsnap $fetch update

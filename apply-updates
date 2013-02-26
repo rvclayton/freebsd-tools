@@ -1,0 +1,67 @@
+#!/bin/sh
+#
+# apply-updates - apply previously fetched system and port updates.  Output
+#   copied to LOG_FILE (default /var/log/apply-updates.log).
+#
+# This code is based on code I got from the Web, but don't remember where.
+
+print_msg ( ) {
+
+  # Print $1 to std-out, adding gaudy froo-frah to make it noticable.
+
+  echo
+  echo "***"
+  echo "*** $1"
+  echo "***"
+  echo
+  }
+
+LOG_FILE=${LOG_FILE:-/var/log/apply-updates.log}
+
+
+( echo "Start updates: `date`."
+
+  print_msg "Installing patches."
+
+  /usr/sbin/freebsd-update install
+
+  print_msg "Checking pkgdb."
+
+  /usr/local/sbin/pkgdb -aFv
+
+  # -a fix discrepancies that can be fixed securely, leave the others
+  # -F interactively fix the package registry database
+  # -v verbose output
+
+  print_msg "Looking for ports to update."
+
+  /usr/local/sbin/portversion -v -L =
+
+  # -v verbose output
+  # -L skip entries matching char
+
+  print_msg "Upgrading ports, ancestors and dependents."
+
+  /usr/local/sbin/portupgrade -aRrbv --batch
+
+  # -a upgrade all packages needing upgrades
+  # -R upgrade all packages required by this package
+  # -r upgrade all packages depending on this package
+  # -b keep backup packages of the old versions
+  # -v verbose output
+  # --batch run in batch, not interactively
+
+  /usr/local/sbin/portversion -v -L =
+
+  print_msg "Checking installed ports for known security problems."
+
+  /usr/local/sbin/portaudit -Fvad
+
+  # -F fetch the current database
+  # -v verbose output
+  # -a check all installed packages
+  # -d print database creation date
+
+  echo "Finish updates: `date`" 
+
+) | tee ${LOG_FILE}
